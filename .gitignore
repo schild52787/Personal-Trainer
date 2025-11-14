@@ -4,6 +4,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Python virtual environments
+venv/
+env/
+ENV/
+.venv/
+
 # Environment variables
 .env
 .env.local
