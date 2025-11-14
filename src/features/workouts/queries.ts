@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { firestoreUtils } from '@/lib/firebase/firestore';
-import { Workout } from '@/types/workout';
+import { firestore } from '@/lib/firestore';
+import { WorkoutInstance } from '@/types/models';
 
 /**
  * Example TanStack Query hooks for workout data
@@ -20,7 +20,7 @@ export const workoutKeys = {
 export const useWorkouts = (userId: string) => {
   return useQuery({
     queryKey: workoutKeys.list(userId),
-    queryFn: () => firestoreUtils.getDocuments<Workout>('workouts'),
+    queryFn: () => firestore.workoutInstances.listByUser(userId),
     enabled: !!userId,
   });
 };
@@ -29,8 +29,17 @@ export const useWorkouts = (userId: string) => {
 export const useWorkout = (id: string) => {
   return useQuery({
     queryKey: workoutKeys.detail(id),
-    queryFn: () => firestoreUtils.getDocument<Workout>('workouts', id),
+    queryFn: () => firestore.workoutInstances.get(id),
     enabled: !!id,
+  });
+};
+
+// Get today's workout
+export const useTodayWorkout = (userId: string) => {
+  return useQuery({
+    queryKey: ['workouts', 'today', userId],
+    queryFn: () => firestore.workoutInstances.getToday(userId),
+    enabled: !!userId,
   });
 };
 
@@ -39,10 +48,9 @@ export const useCreateWorkout = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (workout: Partial<Workout>) =>
-      firestoreUtils.setDocument('workouts', crypto.randomUUID(), workout),
+    mutationFn: (workout: Omit<WorkoutInstance, 'id'>) =>
+      firestore.workoutInstances.create(crypto.randomUUID(), workout),
     onSuccess: () => {
-      // Invalidate and refetch workouts
       queryClient.invalidateQueries({ queryKey: workoutKeys.lists() });
     },
   });
@@ -53,8 +61,8 @@ export const useUpdateWorkout = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Workout> }) =>
-      firestoreUtils.updateDocument('workouts', id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<WorkoutInstance> }) =>
+      firestore.workoutInstances.update(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: workoutKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: workoutKeys.lists() });
